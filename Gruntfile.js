@@ -3,6 +3,14 @@ module.exports = function(grunt) {
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
     concat: {
+      // TODO: add file separator options
+      options: {
+        separator: ';'
+      },
+      dist: {
+        src: ['public/client/**/*.js'],
+        dest: 'public/dist/<%= pkg.name %>.js'
+      }
     },
 
     mochaTest: {
@@ -21,14 +29,26 @@ module.exports = function(grunt) {
     },
 
     uglify: {
+      dist: {
+        files: {
+          'public/dist/<%= pkg.name %>.min.js' : ['<%= concat.dist.dest %>']
+        }
+      }
     },
 
     jshint: {
       files: [
         // Add filespec list here
+        'app/**/*.js',
+        'lib/**/*.js',
+        'public/client/**/*.js',
+        'test/**/*.js',
+        'server.js',
+        'server-config.js'
       ],
       options: {
-        force: 'true',
+        // SETTING THIS TO FALSE DOESN'T REMOVE IT
+        // force: 'true',
         jshintrc: '.jshintrc',
         ignores: [
           'public/lib/**/*.js',
@@ -38,6 +58,19 @@ module.exports = function(grunt) {
     },
 
     cssmin: {
+      options: {
+        shorthandCompacting: false,
+        roundingPrecision: -1
+      },
+      target: {
+        files: [{
+          expand: true,
+          cwd: '**',
+          src: ['*.css', '!*.min.css'],
+          dest: 'public/dist/<%= pkg.name %>',
+          ext: '.min.css'
+        }]
+      }
     },
 
     watch: {
@@ -61,6 +94,11 @@ module.exports = function(grunt) {
       prodServer: {
       }
     },
+
+    server-dev: {
+
+    }
+
   });
 
   grunt.loadNpmTasks('grunt-contrib-uglify');
@@ -90,15 +128,25 @@ module.exports = function(grunt) {
   ////////////////////////////////////////////////////
 
   grunt.registerTask('test', [
+    'jshint',
     'mochaTest'
   ]);
 
   grunt.registerTask('build', [
+    'jshint',
+    'concat',
+    'uglify',
+    'cssmin'
+  ]);
+
+  grunt.registerTask('server-dev', [
+    'server-dev'
   ]);
 
   grunt.registerTask('upload', function(n) {
     if(grunt.option('prod')) {
       // add your production server task here
+
     } else {
       grunt.task.run([ 'server-dev' ]);
     }
