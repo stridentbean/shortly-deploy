@@ -3,6 +3,10 @@
 .LSOverride
 azure.err
 iisnode.yml
+db/shortly.sqlite
+node_modules/*
+public/dist/shortly-express.js
+public/dist/shortly-express.min.js
 
 # Icon must ends with two \r.
 Icon
