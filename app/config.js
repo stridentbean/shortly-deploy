@@ -1,5 +1,46 @@
+// SQL Requires
 var Bookshelf = require('bookshelf');
 var path = require('path');
+
+// Mongo Requires
+var mongoose = require('mongoose');
+mongoose.connect('mongodb://localhost/shortlyMongo');
+var mdb = mongoose.connection;
+
+// mdb.on('error', console.error.bind(console, 'connection error:'));
+// mdb.once('open', function (callback) {
+// console.log('Successful connection to mongo DB');
+
+var UrlSchema = mongoose.Schema({
+    url: String,
+    base_url: String,
+    code: String,
+    title: String,
+    visits: Number,
+    username: String,
+    clicks: [{type: mongoose.Schema.Types.Array, ref: 'Click'}]
+  });
+
+var UserSchema = mongoose.Schema({
+  username: String,
+  password: String,
+  salt: String,
+  urls: [{type: mongoose.Schema.Types.Array, ref: 'Url'}]
+
+});
+
+var ClickSchema = mongoose.Schema({
+  timestamp: Date
+});
+
+var Url = mongoose.model('Url', UrlSchema);
+
+var User = mongoose.model('User', UserSchema);
+
+var Click = mongoose.model('Click', ClickSchema);
+
+// });
+
 
 var db = Bookshelf.initialize({
   client: 'sqlite3',
@@ -12,6 +53,7 @@ var db = Bookshelf.initialize({
     filename: path.join(__dirname, '../db/shortly.sqlite')
   }
 });
+
 
 db.knex.schema.hasTable('urls').then(function(exists) {
   if (!exists) {
@@ -83,3 +125,4 @@ db.knex.schema.hasTable('userLinkJoins').then(function(exists) {
 });
 
 module.exports = db;
+module.exports.mdb = mdb;
