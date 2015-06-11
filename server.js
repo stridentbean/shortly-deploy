@@ -1,4 +1,5 @@
-var app = require('./server-config.js');
+//var app = require('./server-config.js');
+var app = require('./shortly.js');
 
 var port = process.env.port || 4568;
 
