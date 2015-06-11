@@ -91,14 +91,17 @@ module.exports = function(grunt) {
     },
 
     shell: {
+      options: {
+        stderr: true,
+        stdout: true
+      },
       prodServer: {
+        command: ['git push azure master',
+        'azure site scale mode standard shortlydep',
+        'azure site browse',
+        'azure site scale mode free shortlydep'].join('&&')
       }
-    },
-
-    server-dev: {
-
     }
-
   });
 
   grunt.loadNpmTasks('grunt-contrib-uglify');
@@ -139,16 +142,20 @@ module.exports = function(grunt) {
     'cssmin'
   ]);
 
-  grunt.registerTask('server-dev', [
-    'server-dev'
+  grunt.registerTask('default', [
+    ['shell']
   ]);
+
+
 
   grunt.registerTask('upload', function(n) {
     if(grunt.option('prod')) {
       // add your production server task here
-
+      grunt.task.run(['test']);
+      grunt.task.run(['build']);
+      grunt.test.run(['uploadScript']);
     } else {
-      grunt.task.run([ 'server-dev' ]);
+      grunt.task.run([ 'shell' ]);
     }
   });
 
