@@ -6,13 +6,13 @@ var cookieParser = require('cookie-parser');
 var session = require('express-session');
 
 var db = require('./app/config');
-var Users = require('./app/collections/users');
+// var Users = require('./app/collections/users');
 var User = require('./app/models/user');
-var Links = require('./app/collections/links');
+// var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
-var Clicks = require('./app/collections/clicks');
-var Token = require('./app/models/token');
+// var Clicks = require('./app/collections/clicks');
+// var Token = require('./app/models/token');
 
 var app = express();
 
@@ -26,11 +26,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 app.use(cookieParser());
 app.use(session({
-  secret: 'boo',
+  secret: 'strident bean\'s dire parakeet',
   resave: false,
   saveUninitialized: false
 }));
-// app.use(authenticate);
+
 app.use(restrict);
 
 app.get('/login',
@@ -46,21 +46,21 @@ function(req,res) {
 app.post('/signup',
 function(req,res) {
   var currentUser = new User({
-    username: req.body.username
+    username: req.body.username,
+    password: req.body.password
   });
 
-  currentUser.fetch().then(function(found) {
+  User.findOne({username: req.body.username}).exec(function(err, found) {
     if (found) {
-      console.log('user found');
+      console.log('user already exists');
       res.redirect('/signup');
     } else {
-      console.log('user not found');
-      currentUser.salt(req.body.password, function() {
-        currentUser.save().then(function() {
-          req.session.user = {};
-          req.session.save();
-          res.redirect('/');
-        });
+      console.log('no user by that name exists, creating new user...');
+      //currentUser.password = req.body.password;
+      currentUser.save(function(err, newUser) {
+        req.session.user = newUser;
+        req.session.save();
+        res.redirect('/');
       });
     }
   });
@@ -73,19 +73,17 @@ function(req,res) {
     username: req.body.username
   });
 
-  currentUser.fetch().then(function(found) {
+  User.findOne({username: req.body.username}).exec(function(err,found) {
+
     if (found) {
       console.log('user found');
-      currentUser.checkPassword(req.body.password, function(passwordCorrect) {
+      found.checkPassword(req.body.password, function(passwordCorrect) {
         if(passwordCorrect) {
-          //console.log('correct password');
-          //TODO set up cookies
-          // req.session.cookie.token  = 'token';
-          req.session.user = {};
+          req.session.user = found;
           req.session.save();
           res.redirect('/');
         } else {
-          //console.log('incorrect password');
+          console.log('incorrect password');
           res.redirect('/login');
           // res.render('login');
         }
@@ -97,24 +95,6 @@ function(req,res) {
     }
   });
 });
-
-function authenticate(req, res, next) {
-  console.log('authenticate');
-  // if(req.sessionStore) {
-    //console.log('req.session: ', req.cookies['connect.sid']);
-    req.sessionStore.load(req.cookies['connect.sid'], function(err, session) {
-      if(err || !session) {
-        //console.log('session not found');
-      } else {
-        //console.log('sessions found: ', session);
-        req.session = session;
-        //touch
-      }
-      next();
-    });
-
-  // }
-}
 
 function restrict(req, res, next) {
   if (req.session.user || req.url === '/login' || req.url === '/signup') {
@@ -137,8 +117,8 @@ function(req, res) {
 
 app.get('/links',
 function(req, res) {
-  Links.reset().fetch().then(function(links) {
-    res.send(200, links.models);
+  Link.find().exec(function(err,links) {
+    res.send(200, links);
   });
 });
 
@@ -151,9 +131,9 @@ function(req, res) {
     return res.send(404);
   }
 
-  new Link({ url: uri }).fetch().then(function(found) {
+  Link.findOne({ url: uri }).exec(function(err, found) {
     if (found) {
-      res.send(200, found.attributes);
+      res.send(200, found);
     } else {
       util.getUrlTitle(uri, function(err, title) {
         if (err) {
@@ -167,8 +147,7 @@ function(req, res) {
           base_url: req.headers.origin
         });
 
-        link.save().then(function(newLink) {
-          Links.add(newLink);
+        link.save(function(err, newLink) {
           res.send(200, newLink);
         });
       });
@@ -179,7 +158,10 @@ function(req, res) {
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
+app.get('/favicon.ico',
+function(req, res) {
 
+});
 
 
 /************************************************************/
@@ -189,25 +171,56 @@ function(req, res) {
 /************************************************************/
 
 app.get('/*', function(req, res) {
-  new Link({ code: req.params[0] }).fetch().then(function(link) {
-    if (!link) {
+  Link.findOne({ code: req.params[0] }).exec(function(err, link) {
+    if (err) {
       res.redirect('/');
     } else {
+
       var click = new Click({
-        link_id: link.get('id')
+        link_url: link.url
       });
 
-      click.save().then(function() {
-        db.knex('urls')
-          .where('code', '=', link.get('code'))
-          .update({
-            visits: link.get('visits') + 1,
-          }).then(function() {
-            return res.redirect(link.get('url'));
+      click.save(function(err, newClick) {
+        Link.findOne({code: link.code}).exec(function(err, foundLink) {
+          console.log(link + " :  " + foundLink);
+          var targetUrl = foundLink.url;
+          foundLink.visits++;
+          foundLink.save(function(err,savedLink){
+            console.log('Link updated', targetUrl);
+            res.redirect(targetUrl);
           });
+        });
+        // db.knex('urls')
+        //   .where('code', '=', link.get('code'))
+        //   .update({
+        //     visits: link.get('visits') + 1,
+        //   }).then(function() {
+        //     return res.redirect(link.get('url'));
+        //   });
       });
     }
   });
 });
+
+//   new Link({ code: req.params[0] }).fetch().then(function(link) {
+//     if (!link) {
+//       res.redirect('/');
+//     } else {
+//       var click = new Click({
+//         link_id: link.get('id')
+//       });
+
+//       click.save().then(function() {
+//         db.knex('urls')
+//           .where('code', '=', link.get('code'))
+//           .update({
+//             visits: link.get('visits') + 1,
+//           }).then(function() {
+//             return res.redirect(link.get('url'));
+//           });
+//       });
+//     }
+//   });
+// });
 
 module.exports = app;

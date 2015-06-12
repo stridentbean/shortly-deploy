@@ -1,8 +1,8 @@
-var db = require('../config');
-var Click = require('../models/click');
+// var db = require('../config');
+// var Click = require('../models/click');
 
-var Clicks = new db.Collection();
+// var Clicks = new db.Collection();
 
-Clicks.model = Click;
+// Clicks.model = Click;
 
-module.exports = Clicks;
+// module.exports = Clicks;
